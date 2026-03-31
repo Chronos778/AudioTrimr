@@ -407,7 +407,7 @@ class _TrimmerScreenState extends State<TrimmerScreen> {
               elevation: 0,
               surfaceTintColor: Colors.transparent,
               title: Text(
-                state.fileName ?? 'Audio Trimmer',
+                state.fileName ?? 'AudioTrimr',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
