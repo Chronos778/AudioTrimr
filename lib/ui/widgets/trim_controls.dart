@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 
 import '../../cubit/trimmer_cubit.dart';
 import '../../cubit/trimmer_state.dart';
@@ -19,6 +20,8 @@ class _TrimControlsState extends State<TrimControls> {
   late final TextEditingController _endController;
   late final FocusNode _startFocus;
   late final FocusNode _endFocus;
+  int? _lastRangeHapticStartMs;
+  int? _lastRangeHapticEndMs;
 
   @override
   void initState() {
@@ -125,6 +128,24 @@ class _TrimControlsState extends State<TrimControls> {
     _endController.text = formatDuration(state.endDuration);
   }
 
+  void _maybeRangeHaptic(RangeValues values) {
+    final int startMs = values.start.round();
+    final int endMs = values.end.round();
+
+    final bool startMoved =
+        _lastRangeHapticStartMs == null ||
+        (startMs - _lastRangeHapticStartMs!).abs() >= 250;
+    final bool endMoved =
+        _lastRangeHapticEndMs == null ||
+        (endMs - _lastRangeHapticEndMs!).abs() >= 250;
+
+    if (startMoved || endMoved) {
+      _lastRangeHapticStartMs = startMs;
+      _lastRangeHapticEndMs = endMs;
+      HapticFeedback.selectionClick();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TrimmerCubit, TrimmerState>(
@@ -224,14 +245,27 @@ class _TrimControlsState extends State<TrimControls> {
                   ),
                   activeColor: const Color(0xFF1DB954),
                   inactiveColor: Colors.grey.shade800,
+                  onChangeStart: isValid
+                      ? (_) {
+                          _lastRangeHapticStartMs = null;
+                          _lastRangeHapticEndMs = null;
+                          HapticFeedback.lightImpact();
+                        }
+                      : null,
                   onChanged: isValid
                       ? (RangeValues values) {
+                          _maybeRangeHaptic(values);
                           cubit.updateStartTime(
                             Duration(milliseconds: values.start.round()),
                           );
                           cubit.updateEndTime(
                             Duration(milliseconds: values.end.round()),
                           );
+                        }
+                      : null,
+                  onChangeEnd: isValid
+                      ? (_) {
+                          HapticFeedback.lightImpact();
                         }
                       : null,
                 ),

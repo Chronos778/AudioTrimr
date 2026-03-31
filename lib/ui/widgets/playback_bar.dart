@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart' as ja;
 
 import '../../cubit/trimmer_cubit.dart';
@@ -13,7 +14,7 @@ import '../../utils/time_utils.dart';
 ///
 /// [onSeek] is called when the user drags the slider; the parent screen
 /// is responsible for forwarding this to the audio player.
-class PlaybackBar extends StatelessWidget {
+class PlaybackBar extends StatefulWidget {
   const PlaybackBar({
     super.key,
     required this.onSeek,
@@ -25,6 +26,22 @@ class PlaybackBar extends StatelessWidget {
   final void Function(Duration position) onSeek;
   final ja.AudioPlayer audioPlayer;
   final bool isPlaying;
+
+  @override
+  State<PlaybackBar> createState() => _PlaybackBarState();
+}
+
+class _PlaybackBarState extends State<PlaybackBar> {
+  int? _lastSeekHapticMs;
+
+  void _maybeSeekHaptic(double value) {
+    final int valueMs = value.round();
+    if (_lastSeekHapticMs == null ||
+        (valueMs - _lastSeekHapticMs!).abs() >= 250) {
+      _lastSeekHapticMs = valueMs;
+      HapticFeedback.selectionClick();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +57,11 @@ class PlaybackBar extends StatelessWidget {
         final Duration selectedDuration = state.endDuration - state.startDuration;
 
         return StreamBuilder<Duration>(
-          stream: audioPlayer.positionStream,
+          stream: widget.audioPlayer.positionStream,
           initialData: state.playheadPosition,
           builder: (context, snap) {
             final streamPos = snap.data ?? Duration.zero;
-            final rawPos = isPlaying &&
+            final rawPos = widget.isPlaying &&
                     streamPos > state.playheadPosition
                 ? streamPos
                 : state.playheadPosition;
@@ -66,7 +83,7 @@ class PlaybackBar extends StatelessWidget {
                       inactiveTrackColor: Colors.grey.shade800,
                       thumbColor: Colors.white,
                       overlayColor:
-                          const Color(0xFF1DB954).withOpacity(0.12),
+                          const Color(0xFF1DB954).withValues(alpha: 0.12),
                       thumbShape: const RoundSliderThumbShape(
                         enabledThumbRadius: 6,
                       ),
@@ -78,9 +95,23 @@ class PlaybackBar extends StatelessWidget {
                       max: isValid ? endMs : 1,
                       value: isValid ? posMs : 0,
                       activeColor: const Color(0xFF1DB954),
+                      onChangeStart: isValid
+                          ? (_) {
+                              _lastSeekHapticMs = null;
+                              HapticFeedback.lightImpact();
+                            }
+                          : null,
                       onChanged: isValid
                           ? (double value) {
-                              onSeek(Duration(milliseconds: value.round()));
+                              _maybeSeekHaptic(value);
+                              widget.onSeek(
+                                Duration(milliseconds: value.round()),
+                              );
+                            }
+                          : null,
+                      onChangeEnd: isValid
+                          ? (_) {
+                              HapticFeedback.lightImpact();
                             }
                           : null,
                     ),

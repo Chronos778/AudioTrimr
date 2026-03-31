@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'cubit/trimmer_cubit.dart';
-import 'cubit/trimmer_state.dart';
 import 'data/audio_repository.dart';
 import 'domain/trim_audio_usecase.dart';
 import 'ui/trimmer_screen.dart';
@@ -21,7 +20,7 @@ class App extends StatelessWidget {
         audioRepository: audioRepository,
       ),
       child: MaterialApp(
-        title: 'Audio Trimmer',
+        title: 'AudioTrimr',
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark(useMaterial3: true).copyWith(
           colorScheme: ColorScheme.fromSeed(
