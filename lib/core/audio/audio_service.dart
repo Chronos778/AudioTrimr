@@ -191,6 +191,9 @@ class AudioService {
     required Duration start,
     required Duration end,
     required String outputFormat,
+    String? exportPreset,
+    Duration fadeIn = Duration.zero,
+    Duration fadeOut = Duration.zero,
     void Function(double progress)? onProgress,
   }) async {
     final dir = await getApplicationDocumentsDirectory();
@@ -204,13 +207,24 @@ class AudioService {
     final durationStr = _formatFFmpegTime(durationMs);
 
     String codec;
+    final preset = (exportPreset ?? '').toUpperCase();
     switch (ext) {
       case 'mp3':
-        codec = '-codec:a libmp3lame -q:a 2';
+        if (preset == 'MP3_LOW') {
+          codec = '-codec:a libmp3lame -b:a 96k';
+        } else if (preset == 'MP3_HIGH') {
+          codec = '-codec:a libmp3lame -b:a 320k';
+        } else {
+          codec = '-codec:a libmp3lame -q:a 2';
+        }
         break;
       case 'aac':
       case 'm4a':
-        codec = '-codec:a aac -b:a 192k';
+        if (preset == 'AAC_HIGH') {
+          codec = '-codec:a aac -b:a 256k';
+        } else {
+          codec = '-codec:a aac -b:a 192k';
+        }
         break;
       case 'wav':
         codec = '-codec:a pcm_s16le';
@@ -219,8 +233,24 @@ class AudioService {
         codec = '-codec:a copy';
     }
 
+    final fadeInSec = fadeIn.inMilliseconds / 1000.0;
+    final fadeOutSec = fadeOut.inMilliseconds / 1000.0;
+    final clipDurationSec = durationMs.inMilliseconds / 1000.0;
+
+    final filters = <String>[];
+    if (fadeInSec > 0) {
+      filters.add('afade=t=in:st=0:d=${fadeInSec.toStringAsFixed(3)}');
+    }
+    if (fadeOutSec > 0 && clipDurationSec > fadeOutSec) {
+      final fadeOutStart = clipDurationSec - fadeOutSec;
+      filters.add(
+          'afade=t=out:st=${fadeOutStart.toStringAsFixed(3)}:d=${fadeOutSec.toStringAsFixed(3)}');
+    }
+
+    final filterArg = filters.isNotEmpty ? '-af "${filters.join(',')}"' : '';
+
     final command =
-        '-y -i "$inputPath" -ss $startStr -t $durationStr $codec "$outputPath"';
+        '-y -i "$inputPath" -ss $startStr -t $durationStr $codec $filterArg "$outputPath"';
 
     // Set up progress callback
     if (onProgress != null) {

@@ -12,75 +12,104 @@ class FileImportZone extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(trimmerProvider);
+    final isLoading = state.status == TrimmerStatus.loading;
 
-    return GestureDetector(
-      onTap: state.status == TrimmerStatus.loading
-          ? null
-          : () => _pickFile(context, ref),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        decoration: BoxDecoration(
-          color: AppTheme.bgSurface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: state.status == TrimmerStatus.loading
-                ? AppTheme.accentElec.withValues(alpha: 0.5)
-                : AppTheme.borderColor,
-            width: 1,
+    return AnimatedContainer(
+      duration: AppTheme.mediumDuration,
+      curve: AppTheme.emphasisCurve,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: AppTheme.panelDecoration(
+        tint: isLoading ? AppTheme.bgElevated : AppTheme.bgPanel,
+        elevated: true,
+      ),
+      child: Semantics(
+        button: !isLoading,
+        enabled: !isLoading,
+        label: isLoading ? 'Loading audio file' : 'Import audio file',
+        hint: isLoading
+            ? 'Please wait while the app loads the source file'
+            : 'Opens the file picker and requests storage access if needed',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isLoading ? null : () => _pickFile(context, ref),
+            borderRadius: AppTheme.panelRadius,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              child: AnimatedSwitcher(
+                duration: AppTheme.mediumDuration,
+                switchInCurve: AppTheme.emphasisCurve,
+                switchOutCurve: AppTheme.revealCurve,
+                child: isLoading
+                    ? _buildLoadingState()
+                    : _buildIdleState(context, ref),
+              ),
+            ),
           ),
         ),
-        child: state.status == TrimmerStatus.loading
-            ? _buildLoadingState()
-            : _buildIdleState(),
       ),
-    )
-        .animate()
-        .fadeIn(duration: 400.ms, delay: 100.ms)
-        .slideY(begin: 0.05, end: 0, duration: 400.ms, delay: 100.ms);
+    ).animate().fadeIn(duration: 320.ms).slideY(begin: 0.06, end: 0, duration: 320.ms);
   }
 
   Widget _buildLoadingState() {
     return Column(
+      key: const ValueKey('loading'),
       children: [
         SizedBox(
-          width: 24,
-          height: 24,
+          width: 28,
+          height: 28,
           child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor:
-                AlwaysStoppedAnimation<Color>(AppTheme.accentElec),
+            strokeWidth: 2.4,
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentElec),
           ),
         ),
-        const SizedBox(height: 12),
-        Text('LOADING AUDIO...', style: AppTheme.monoLabel),
+        const SizedBox(height: 14),
+        Text('LOADING AUDIO', style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec)),
+        const SizedBox(height: 6),
+        Text(
+          'Reading metadata and preparing the waveform workspace.',
+          style: AppTheme.bodySmall,
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }
 
-  Widget _buildIdleState() {
+  Widget _buildIdleState(BuildContext context, WidgetRef ref) {
     return Column(
+      key: const ValueKey('idle'),
       children: [
-        Icon(
-          Icons.audio_file_outlined,
-          size: 32,
-          color: AppTheme.accentElec.withValues(alpha: 0.7),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'TAP TO IMPORT AUDIO',
-          style: AppTheme.monoLabel.copyWith(
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppTheme.accentElec.withValues(alpha: 0.12),
+            border: Border.all(color: AppTheme.accentElec.withValues(alpha: 0.45)),
+          ),
+          child: Icon(
+            Icons.audio_file_outlined,
+            size: 30,
             color: AppTheme.accentElec,
-            fontSize: 12,
-            letterSpacing: 2.0,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 14),
+        Text(
+          'IMPORT A SOURCE TRACK',
+          style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec),
+        ),
+        const SizedBox(height: 8),
         Text(
           'MP3 · WAV · M4A · AAC · OGG · FLAC',
-          style: AppTheme.monoLabel.copyWith(fontSize: 10),
+          style: AppTheme.bodySmall,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 14),
+        FilledButton.icon(
+          onPressed: () => _pickFile(context, ref),
+          icon: const Icon(Icons.upload_file_rounded, size: 18),
+          label: const Text('Choose audio file'),
         ),
       ],
     );

@@ -19,46 +19,46 @@ class TrimInfoBar extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppTheme.bgSurface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.borderColor),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.panelDecoration(elevated: true),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InfoChip(
-            label: 'START',
-            value: FormatUtils.formatDuration(state.trimStart),
-            color: AppTheme.accentGreen,
-          ),
-          Container(
-            width: 1,
-            height: 28,
-            color: AppTheme.borderColor,
-          ),
-          _InfoChip(
-            label: 'END',
-            value: FormatUtils.formatDuration(state.trimEnd),
-            color: AppTheme.accentRed,
-          ),
-          Container(
-            width: 1,
-            height: 28,
-            color: AppTheme.borderColor,
-          ),
-          _InfoChip(
-            label: 'DURATION',
-            value: FormatUtils.formatDuration(state.trimmedDuration),
-            color: AppTheme.accentElec,
+          Text('TRIM WINDOW', style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _InfoChip(
+                  label: 'START',
+                  value: FormatUtils.formatDuration(state.trimStart),
+                  color: AppTheme.accentGreen,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _InfoChip(
+                  label: 'END',
+                  value: FormatUtils.formatDuration(state.trimEnd),
+                  color: AppTheme.accentRed,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _InfoChip(
+                  label: 'DURATION',
+                  value: FormatUtils.formatDuration(state.trimmedDuration),
+                  color: AppTheme.accentElec,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     )
         .animate()
-        .fadeIn(duration: 300.ms, delay: 400.ms)
-        .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 400.ms);
+        .fadeIn(duration: 260.ms, delay: 180.ms)
+        .slideY(begin: 0.06, end: 0, duration: 260.ms, delay: 180.ms);
   }
 }
 
@@ -80,17 +80,14 @@ class _InfoChip extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTheme.monoLabel.copyWith(
-            fontSize: 9,
-            letterSpacing: 1.5,
-          ),
+          style: AppTheme.monoLabel.copyWith(fontSize: 9, letterSpacing: 1.3),
         ),
         const SizedBox(height: 4),
         Text(
           value,
           style: AppTheme.monoValue.copyWith(
             color: color,
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
           ),
         ),

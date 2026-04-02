@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
-import '../features/trimmer/screen/trimmer_screen.dart';
+import '../features/trimmer/screen/trimmer_view.dart';
 
 class TrimrApp extends StatelessWidget {
   const TrimrApp({super.key});
@@ -11,7 +11,7 @@ class TrimrApp extends StatelessWidget {
       title: 'TRIMR',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const TrimmerScreen(),
+      home: const TrimmerView(),
     );
   }
 }

@@ -7,6 +7,7 @@ class WaveformPainter extends CustomPainter {
   final double trimStartFraction;
   final double trimEndFraction;
   final double playheadFraction;
+  final double zoomLevel;
   final bool isPlaying;
 
   WaveformPainter({
@@ -14,6 +15,7 @@ class WaveformPainter extends CustomPainter {
     required this.trimStartFraction,
     required this.trimEndFraction,
     required this.playheadFraction,
+    required this.zoomLevel,
     this.isPlaying = false,
   });
 
@@ -21,15 +23,28 @@ class WaveformPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (samples.isEmpty) return;
 
-    final barWidth = max(1.0, (size.width / samples.length) - 1.0);
-    final spacing = max(0.5, (size.width - barWidth * samples.length) / (samples.length - 1));
+    final effectiveZoom = zoomLevel.clamp(1.0, 3.0);
+    final zoomedWidth = size.width * effectiveZoom;
+    final barWidth = max(1.0, (zoomedWidth / samples.length) - 1.0);
+    final spacing = max(0.5, (zoomedWidth - barWidth * samples.length) / (samples.length - 1));
     final totalBarWidth = barWidth + spacing;
+    final horizontalOffset = (size.width - zoomedWidth) / 2;
     final centerY = size.height / 2;
     final maxBarHeight = size.height * 0.85;
 
+    final regionGlowPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          AppTheme.accentElec.withValues(alpha: 0.22),
+          AppTheme.accentGreen.withValues(alpha: 0.14),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), regionGlowPaint);
+
     // Paint for inactive (outside trim) bars
     final inactivePaint = Paint()
-      ..color = AppTheme.waveformBase.withValues(alpha: 0.4)
+      ..color = AppTheme.waveformBase.withValues(alpha: 0.45)
       ..style = PaintingStyle.fill
       ..strokeCap = StrokeCap.round;
 
@@ -40,7 +55,7 @@ class WaveformPainter extends CustomPainter {
 
     // Draw each bar
     for (int i = 0; i < samples.length; i++) {
-      final x = i * totalBarWidth;
+      final x = horizontalOffset + i * totalBarWidth;
       final fraction = i / samples.length;
       final isInTrimRegion =
           fraction >= trimStartFraction && fraction <= trimEndFraction;
@@ -58,16 +73,18 @@ class WaveformPainter extends CustomPainter {
       );
 
       if (isInTrimRegion) {
-        // Active bars get full color with slight gradient
         activePaint.color = Color.lerp(
-          AppTheme.waveformActive.withValues(alpha: 0.7),
+          AppTheme.waveformActive.withValues(alpha: 0.72),
           AppTheme.waveformActive,
           amplitude,
         )!;
 
-        // If playhead has passed this bar, make it brighter
         if (playheadFraction > 0 && fraction <= _getAbsolutePlayhead()) {
-          activePaint.color = AppTheme.waveformActive;
+          activePaint.color = Color.lerp(
+            AppTheme.accentElec,
+            AppTheme.waveformActive,
+            0.35,
+          )!;
         }
 
         canvas.drawRRect(rect, activePaint);
@@ -85,7 +102,7 @@ class WaveformPainter extends CustomPainter {
     if (trimStartFraction > 0) {
       canvas.drawRect(
         Rect.fromLTRB(0, 0, trimStartFraction * size.width, size.height),
-        overlayPaint,
+        overlayPaint..color = AppTheme.bgPrimary.withValues(alpha: 0.62),
       );
     }
 
@@ -94,17 +111,27 @@ class WaveformPainter extends CustomPainter {
       canvas.drawRect(
         Rect.fromLTRB(
             trimEndFraction * size.width, 0, size.width, size.height),
-        overlayPaint,
+        overlayPaint..color = AppTheme.bgPrimary.withValues(alpha: 0.62),
       );
     }
 
-    // Draw playhead
     if (isPlaying || playheadFraction > 0) {
       final playheadX = _getAbsolutePlayhead() * size.width;
       final playheadPaint = Paint()
         ..color = AppTheme.textPrimary
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5;
+        ..strokeWidth = 1.8;
+
+      final glowPaint = Paint()
+        ..color = AppTheme.accentElec.withValues(alpha: 0.16)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 7;
+
+      canvas.drawLine(
+        Offset(playheadX, 0),
+        Offset(playheadX, size.height),
+        glowPaint,
+      );
 
       canvas.drawLine(
         Offset(playheadX, 0),
@@ -112,11 +139,10 @@ class WaveformPainter extends CustomPainter {
         playheadPaint,
       );
 
-      // Playhead dot at top
       canvas.drawCircle(
         Offset(playheadX, 3),
-        3,
-        Paint()..color = AppTheme.textPrimary,
+        4,
+        Paint()..color = AppTheme.accentElec,
       );
     }
   }
@@ -133,6 +159,7 @@ class WaveformPainter extends CustomPainter {
         oldDelegate.trimStartFraction != trimStartFraction ||
         oldDelegate.trimEndFraction != trimEndFraction ||
         oldDelegate.playheadFraction != playheadFraction ||
+        oldDelegate.zoomLevel != zoomLevel ||
         oldDelegate.isPlaying != isPlaying;
   }
 }

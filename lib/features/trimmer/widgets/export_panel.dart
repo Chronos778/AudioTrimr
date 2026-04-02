@@ -22,59 +22,30 @@ class ExportPanel extends ConsumerWidget {
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Format selector
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: AppTheme.bgSurface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppTheme.borderColor),
-          ),
-          child: Row(
-            children: _formats.map((format) {
-              final isSelected = state.selectedFormat == format;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => notifier.setSelectedFormat(format),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected ? AppTheme.bgElevated : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: isSelected
-                          ? Border.all(
-                              color: AppTheme.accentElec.withValues(alpha: 0.3))
-                          : null,
-                    ),
-                    child: Center(
-                      child: Text(
-                        format,
-                        style: AppTheme.monoLabel.copyWith(
-                          color: isSelected
-                              ? AppTheme.accentElec
-                              : AppTheme.textMuted,
-                          fontSize: 11,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
+        Text('FORMAT', style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec)),
+        const SizedBox(height: 8),
+        SegmentedButton<String>(
+          segments: _formats
+              .map(
+                (format) => ButtonSegment<String>(
+                  value: format,
+                  label: Text(format),
+                  icon: const Icon(Icons.audio_file_outlined, size: 18),
                 ),
-              );
-            }).toList(),
-          ),
+              )
+              .toList(),
+          selected: {state.selectedFormat},
+          onSelectionChanged: (selection) {
+            notifier.setSelectedFormat(selection.first);
+          },
         ),
-
         const SizedBox(height: 12),
-
-        // Export button or progress or success
         if (state.status == TrimmerStatus.exporting)
           _buildExportingState(state.exportProgress)
-        else if (state.status == TrimmerStatus.exported)
+        else if (state.status == TrimmerStatus.exported &&
+            state.exportedPath != null)
           _buildExportedState(context, ref, state.exportedPath!)
         else if (state.status == TrimmerStatus.error &&
             state.errorMessage != null)
@@ -84,93 +55,81 @@ class ExportPanel extends ConsumerWidget {
       ],
     )
         .animate()
-        .fadeIn(duration: 300.ms, delay: 600.ms)
-        .slideY(begin: 0.1, end: 0, duration: 300.ms, delay: 600.ms);
+        .fadeIn(duration: 260.ms, delay: 220.ms)
+        .slideY(begin: 0.08, end: 0, duration: 260.ms, delay: 220.ms);
   }
 
   Widget _buildExportButton(TrimmerNotifier notifier) {
-    return GestureDetector(
-      onTap: () => notifier.exportTrimmed(),
-      child: Container(
+    return Semantics(
+      button: true,
+      label: 'Trim and export',
+      hint: 'Creates the selected output file in the chosen format',
+      child: SizedBox(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: AppTheme.accentElec,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.accentElec.withValues(alpha: 0.25),
-              blurRadius: 20,
-              spreadRadius: 0,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            'TRIM & EXPORT',
-            style: AppTheme.buttonText.copyWith(letterSpacing: 2.0),
+        child: FilledButton(
+          onPressed: () => notifier.exportTrimmed(),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppTheme.accentElec,
+            foregroundColor: AppTheme.bgPrimary,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: const StadiumBorder(),
           ),
+          child: const Text('TRIM & EXPORT'),
         ),
       ),
-    )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .shimmer(
-          duration: 2000.ms,
-          color: AppTheme.accentElec.withValues(alpha: 0.1),
-        );
+    );
   }
 
   Widget _buildExportingState(double progress) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
       decoration: BoxDecoration(
-        color: AppTheme.bgSurface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.accentElec.withValues(alpha: 0.3)),
+        color: AppTheme.bgPanel,
+        borderRadius: AppTheme.panelRadius,
+        border: Border.all(color: AppTheme.accentElec.withValues(alpha: 0.35)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'EXPORTING...',
-            style: AppTheme.monoLabel.copyWith(
-              color: AppTheme.accentElec,
-              letterSpacing: 2.0,
-            ),
+            'EXPORTING',
+            style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec),
           ),
           const SizedBox(height: 12),
           ClipRRect(
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: AppTheme.bgElevated,
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(AppTheme.accentElec),
-              minHeight: 4,
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentElec),
+              minHeight: 6,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '${(progress * 100).toInt()}%',
-            style: AppTheme.monoValue.copyWith(fontSize: 12),
+            style: AppTheme.monoValue.copyWith(
+              fontSize: 12,
+              color: AppTheme.accentInk,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildExportedState(
-      BuildContext context, WidgetRef ref, String path) {
+  Widget _buildExportedState(BuildContext context, WidgetRef ref, String path) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bgSurface,
-        borderRadius: BorderRadius.circular(8),
+        color: AppTheme.successTint,
+        borderRadius: AppTheme.panelRadius,
         border: Border.all(color: AppTheme.accentGreen.withValues(alpha: 0.4)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.check_circle_outline_rounded,
@@ -187,15 +146,12 @@ class ExportPanel extends ConsumerWidget {
           const SizedBox(height: 10),
           Text(
             'EXPORT COMPLETE',
-            style: AppTheme.monoLabel.copyWith(
-              color: AppTheme.accentGreen,
-              letterSpacing: 2.0,
-            ),
+            style: AppTheme.monoLabel.copyWith(color: AppTheme.accentGreen),
           ),
           const SizedBox(height: 8),
           Text(
             path.split('/').last,
-            style: AppTheme.bodySmall,
+            style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -231,32 +187,29 @@ class ExportPanel extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(
-      BuildContext context, WidgetRef ref, String error) {
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, String error) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bgSurface,
-        borderRadius: BorderRadius.circular(8),
+        color: AppTheme.errorTint,
+        borderRadius: AppTheme.panelRadius,
         border: Border.all(color: AppTheme.accentRed.withValues(alpha: 0.4)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.error_outline_rounded,
               color: AppTheme.accentRed, size: 32),
           const SizedBox(height: 10),
           Text(
             'EXPORT FAILED',
-            style: AppTheme.monoLabel.copyWith(
-              color: AppTheme.accentRed,
-              letterSpacing: 2.0,
-            ),
+            style: AppTheme.monoLabel.copyWith(color: AppTheme.accentRed),
           ),
           const SizedBox(height: 8),
           SelectableText(
             error,
-            style: AppTheme.bodySmall.copyWith(fontSize: 11),
+            style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -287,29 +240,19 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: AppTheme.bgElevated,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppTheme.borderColor),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: AppTheme.monoLabel.copyWith(
-                color: color,
-                fontSize: 10,
-                letterSpacing: 1.0,
-              ),
-            ),
-          ],
+    return Semantics(
+      button: true,
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: onTap,
+          icon: Icon(icon, color: color, size: 16),
+          label: Text(label),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: color,
+            side: BorderSide(color: color.withValues(alpha: 0.4)),
+            shape: const StadiumBorder(),
+          ),
         ),
       ),
     );
