@@ -302,7 +302,7 @@ class _TinyFadeRow extends StatelessWidget {
         ),
         SizedBox(
           width: 36,
-          child: Text('${current.toStringAsFixed(1)}', style: AppTheme.monoValue.copyWith(fontSize: 10)),
+          child: Text(current.toStringAsFixed(1), style: AppTheme.monoValue.copyWith(fontSize: 10)),
         ),
       ],
     );
