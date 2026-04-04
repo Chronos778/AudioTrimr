@@ -1,7 +1,0 @@
-Analyzing AudioTrimr...                                         
-
-warning - Unused import: 'package:flutter_animate/flutter_animate.dart' - lib\features\trimmer\widgets\file_import_zone.dart:2:8 - unused_import
-warning - Unused import: '../../../../core/utils/format_utils.dart' - lib\features\trimmer\widgets\transport_controls.dart:5:8 - unused_import
-   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\features\trimmer\widgets\transport_controls.dart:88:23 - deprecated_member_use
-warning - Unused import: 'dart:math' - lib\features\trimmer\widgets\waveform_painter.dart:1:8 - unused_import
-
