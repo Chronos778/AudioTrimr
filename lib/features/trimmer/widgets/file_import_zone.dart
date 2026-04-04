@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../app/theme.dart';
@@ -14,63 +13,32 @@ class FileImportZone extends ConsumerWidget {
     final state = ref.watch(trimmerProvider);
     final isLoading = state.status == TrimmerStatus.loading;
 
-    return AnimatedContainer(
-      duration: AppTheme.mediumDuration,
-      curve: AppTheme.emphasisCurve,
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: AppTheme.panelDecoration(
-        tint: isLoading ? AppTheme.bgElevated : AppTheme.bgPanel,
-        elevated: true,
-      ),
-      child: Semantics(
-        button: !isLoading,
-        enabled: !isLoading,
-        label: isLoading ? 'Loading audio file' : 'Import audio file',
-        hint: isLoading
-            ? 'Please wait while the app loads the source file'
-            : 'Opens the file picker and requests storage access if needed',
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isLoading ? null : () => _pickFile(context, ref),
-            borderRadius: AppTheme.panelRadius,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: AnimatedSwitcher(
-                duration: AppTheme.mediumDuration,
-                switchInCurve: AppTheme.emphasisCurve,
-                switchOutCurve: AppTheme.revealCurve,
-                child: isLoading
-                    ? _buildLoadingState()
-                    : _buildIdleState(context, ref),
-              ),
-            ),
-          ),
+    return GestureDetector(
+      onTap: isLoading ? null : () => _pickFile(context, ref),
+      child: Container(
+        width: double.infinity,
+        height: 600,
+        decoration: BoxDecoration(
+          color: AppTheme.bgSurface,
+          border: Border.all(color: AppTheme.accentBlue, width: 1.0),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         ),
+        padding: const EdgeInsets.all(32),
+        child: isLoading ? _buildLoadingState() : _buildIdleState(context, ref),
       ),
-    ).animate().fadeIn(duration: 320.ms).slideY(begin: 0.06, end: 0, duration: 320.ms);
+    );
   }
 
   Widget _buildLoadingState() {
     return Column(
-      key: const ValueKey('loading'),
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.4,
-            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentElec),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text('LOADING AUDIO', style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec)),
-        const SizedBox(height: 6),
-        Text(
-          'Reading metadata and preparing the waveform workspace.',
-          style: AppTheme.bodySmall,
-          textAlign: TextAlign.center,
+        Text('IMPORTING AUDIO', style: AppTheme.monoDisplay.copyWith(fontSize: 28, color: AppTheme.accentBlue)),
+        const SizedBox(height: 24),
+        LinearProgressIndicator(
+          minHeight: 2,
+          backgroundColor: AppTheme.borderColor,
+          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accentBlue),
         ),
       ],
     );
@@ -78,48 +46,34 @@ class FileImportZone extends ConsumerWidget {
 
   Widget _buildIdleState(BuildContext context, WidgetRef ref) {
     return Column(
-      key: const ValueKey('idle'),
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppTheme.accentElec.withValues(alpha: 0.12),
-            border: Border.all(color: AppTheme.accentElec.withValues(alpha: 0.45)),
-          ),
-          child: Icon(
-            Icons.audio_file_outlined,
-            size: 30,
-            color: AppTheme.accentElec,
-          ),
-        ),
-        const SizedBox(height: 14),
+        Text('SELECT AUDIO FILE', style: AppTheme.monoDisplay.copyWith(fontSize: 28)),
+        const SizedBox(height: 24),
         Text(
-          'IMPORT A SOURCE TRACK',
-          style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec),
+          'TAP TO IMPORT',
+          style: AppTheme.monoLabel.copyWith(color: AppTheme.accentBlue, letterSpacing: 1.5),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'MP3 · WAV · M4A · AAC · OGG · FLAC',
-          style: AppTheme.bodySmall,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 14),
-        FilledButton.icon(
-          onPressed: () => _pickFile(context, ref),
-          icon: const Icon(Icons.upload_file_rounded, size: 18),
-          label: const Text('Choose audio file'),
-        ),
+        const SizedBox(height: 48),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: const [
+            _FormatTag('MP3'),
+            _FormatTag('WAV'),
+            _FormatTag('FLAC'),
+            _FormatTag('M4A'),
+            _FormatTag('AAC'),
+          ],
+        )
       ],
     );
   }
 
   Future<void> _pickFile(BuildContext context, WidgetRef ref) async {
-    // Request permissions first
     if (context.mounted) {
-      final hasPermission =
-          await PermissionService.requestStoragePermissions(context);
+      final hasPermission = await PermissionService.requestStoragePermissions(context);
       if (!hasPermission) return;
     }
 
@@ -137,11 +91,29 @@ class FileImportZone extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick file: ${e.toString()}'),
+            content: Text('ERR: ${e.toString()}'),
             backgroundColor: AppTheme.accentRed,
           ),
         );
       }
     }
+  }
+}
+
+class _FormatTag extends StatelessWidget {
+  final String format;
+  const _FormatTag(this.format);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppTheme.borderColor),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        color: AppTheme.bgPrimary,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Text(format, style: AppTheme.monoLabel.copyWith(color: AppTheme.textMuted, letterSpacing: 1.0)),
+    );
   }
 }

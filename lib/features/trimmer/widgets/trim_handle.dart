@@ -36,8 +36,7 @@ class _TrimHandleState extends State<TrimHandle> {
   bool _focused = false;
   bool _hovered = false;
 
-  Color get _color =>
-      widget.type == HandleType.start ? AppTheme.accentGreen : AppTheme.accentRed;
+  Color get _color => AppTheme.accentBlue;
 
   String get _label =>
       widget.type == HandleType.start ? 'Start trim handle' : 'End trim handle';
@@ -105,15 +104,15 @@ class _TrimHandleState extends State<TrimHandle> {
                 width: handleWidth,
                 height: widget.containerHeight,
                 child: AnimatedContainer(
-                  duration: AppTheme.quickDuration,
-                  curve: AppTheme.emphasisCurve,
+                  duration: AppTheme.microDuration,
+                  curve: AppTheme.easeOutSmooth,
                   decoration: BoxDecoration(
                     boxShadow: _focused || _hovered
                         ? [
                             BoxShadow(
-                              color: _color.withValues(alpha: 0.22),
-                              blurRadius: 18,
-                              spreadRadius: 3,
+                              color: _color.withValues(alpha: 0.15),
+                              blurRadius: 12,
+                              spreadRadius: 2,
                             ),
                           ]
                         : const [],
@@ -142,63 +141,41 @@ class _HandlePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final fillPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
     final linePaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = focused ? 2.6 : 2.0;
+      ..strokeWidth = focused ? 4.0 : 2.0;
 
-    final gripLinePaint = Paint()
-      ..color = AppTheme.bgPrimary.withValues(alpha: 0.74)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+    final headPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
 
     final centerX = size.width / 2;
+    
+    // Main boundary line
     canvas.drawLine(
       Offset(centerX, 0),
       Offset(centerX, size.height),
       linePaint,
     );
 
-    final topGrip = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(centerX, 14),
-        width: 14,
-        height: 20,
-      ),
-      const Radius.circular(4),
+    // Head block top
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(centerX, 10), width: 14, height: 20),
+      headPaint,
     );
-    canvas.drawRRect(topGrip, fillPaint);
 
-    for (int i = -1; i <= 1; i++) {
-      final y = 14.0 + i * 4.0;
-      canvas.drawLine(
-        Offset(centerX - 3, y),
-        Offset(centerX + 3, y),
-        gripLinePaint,
-      );
-    }
-
-    final bottomGrip = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(centerX, size.height - 14),
-        width: 14,
-        height: 20,
-      ),
-      const Radius.circular(4),
+    // Head block bottom
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(centerX, size.height - 10), width: 14, height: 20),
+      headPaint,
     );
-    canvas.drawRRect(bottomGrip, fillPaint);
 
-    for (int i = -1; i <= 1; i++) {
-      final y = size.height - 14.0 + i * 4.0;
-      canvas.drawLine(
-        Offset(centerX - 3, y),
-        Offset(centerX + 3, y),
-        gripLinePaint,
-      );
+    // Geometric arrows inside blocks if focused
+    if (focused) {
+      final textPaint = Paint()..color = AppTheme.bgPrimary;
+      canvas.drawLine(Offset(centerX - 3, 10), Offset(centerX + 3, 10), textPaint..strokeWidth = 2);
+      canvas.drawLine(Offset(centerX - 3, size.height - 10), Offset(centerX + 3, size.height - 10), textPaint..strokeWidth = 2);
     }
   }
 
@@ -207,3 +184,4 @@ class _HandlePainter extends CustomPainter {
     return oldDelegate.color != color || oldDelegate.focused != focused;
   }
 }
+

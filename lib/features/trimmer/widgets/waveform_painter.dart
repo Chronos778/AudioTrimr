@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../app/theme.dart';
 
@@ -23,143 +22,88 @@ class WaveformPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (samples.isEmpty) return;
 
-    final effectiveZoom = zoomLevel.clamp(1.0, 3.0);
-    final zoomedWidth = size.width * effectiveZoom;
-    final barWidth = max(1.0, (zoomedWidth / samples.length) - 1.0);
-    final spacing = max(0.5, (zoomedWidth - barWidth * samples.length) / (samples.length - 1));
-    final totalBarWidth = barWidth + spacing;
-    final horizontalOffset = (size.width - zoomedWidth) / 2;
     final centerY = size.height / 2;
-    final maxBarHeight = size.height * 0.85;
+    final maxAmplitude = size.height / 2;
 
-    final regionGlowPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          AppTheme.accentElec.withValues(alpha: 0.22),
-          AppTheme.accentGreen.withValues(alpha: 0.14),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    final path = Path();
+    path.moveTo(0, centerY);
 
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), regionGlowPaint);
+    final activePath = Path();
+    bool activePathStarted = false;
 
-    // Paint for inactive (outside trim) bars
-    final inactivePaint = Paint()
-      ..color = AppTheme.waveformBase.withValues(alpha: 0.45)
-      ..style = PaintingStyle.fill
-      ..strokeCap = StrokeCap.round;
-
-    // Paint for active (inside trim) bars
-    final activePaint = Paint()
-      ..style = PaintingStyle.fill
-      ..strokeCap = StrokeCap.round;
-
-    // Draw each bar
+    // Build the top half
     for (int i = 0; i < samples.length; i++) {
-      final x = horizontalOffset + i * totalBarWidth;
+      final x = (i / (samples.length - 1)) * size.width;
+      final amplitude = samples[i].clamp(0.01, 1.0);
+      final y = centerY - (amplitude * maxAmplitude);
+      
       final fraction = i / samples.length;
-      final isInTrimRegion =
-          fraction >= trimStartFraction && fraction <= trimEndFraction;
+      final isInTrimRegion = fraction >= trimStartFraction && fraction <= trimEndFraction;
 
-      final amplitude = samples[i].clamp(0.02, 1.0);
-      final barHeight = max(2.0, amplitude * maxBarHeight);
-
-      final rect = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(x + barWidth / 2, centerY),
-          width: barWidth,
-          height: barHeight,
-        ),
-        Radius.circular(barWidth / 2),
-      );
+      path.lineTo(x, y);
 
       if (isInTrimRegion) {
-        activePaint.color = Color.lerp(
-          AppTheme.waveformActive.withValues(alpha: 0.72),
-          AppTheme.waveformActive,
-          amplitude,
-        )!;
-
-        if (playheadFraction > 0 && fraction <= _getAbsolutePlayhead()) {
-          activePaint.color = Color.lerp(
-            AppTheme.accentElec,
-            AppTheme.waveformActive,
-            0.35,
-          )!;
+        if (!activePathStarted) {
+          activePath.moveTo(x, centerY);
+          activePath.lineTo(x, y);
+          activePathStarted = true;
+        } else {
+          activePath.lineTo(x, y);
         }
-
-        canvas.drawRRect(rect, activePaint);
-      } else {
-        canvas.drawRRect(rect, inactivePaint);
+      } else if (activePathStarted && fraction > trimEndFraction) {
+        activePath.lineTo(x, centerY); // close off
+        activePathStarted = false;
       }
     }
 
-    // Draw dim overlay outside trim region
-    final overlayPaint = Paint()
-      ..color = AppTheme.bgPrimary.withValues(alpha: 0.5)
-      ..style = PaintingStyle.fill;
+    path.lineTo(size.width, centerY);
 
-    // Left overlay
+    // Build the bottom half (reverse)
+    for (int i = samples.length - 1; i >= 0; i--) {
+      final x = (i / (samples.length - 1)) * size.width;
+      final amplitude = samples[i].clamp(0.01, 1.0);
+      final y = centerY + (amplitude * maxAmplitude);
+      
+      final fraction = i / samples.length;
+      final isInTrimRegion = fraction >= trimStartFraction && fraction <= trimEndFraction;
+
+      path.lineTo(x, y);
+
+      if (isInTrimRegion) {
+        activePath.lineTo(x, y);
+      }
+    }
+    
+    path.close();
+    if (activePathStarted) {
+      activePath.lineTo(trimEndFraction * size.width, centerY);
+    }
+    activePath.close();
+
+    // Draw the full waveform base
+    canvas.drawPath(path, Paint()..color = AppTheme.waveformBase..style = PaintingStyle.fill);
+
+    // Darken outsides
+    final overlayPaint = Paint()..color = AppTheme.bgPrimary.withValues(alpha: 0.85);
     if (trimStartFraction > 0) {
-      canvas.drawRect(
-        Rect.fromLTRB(0, 0, trimStartFraction * size.width, size.height),
-        overlayPaint..color = AppTheme.bgPrimary.withValues(alpha: 0.62),
-      );
+      canvas.drawRect(Rect.fromLTRB(0, 0, trimStartFraction * size.width, size.height), overlayPaint);
+    }
+    if (trimEndFraction < 1.0) {
+      canvas.drawRect(Rect.fromLTRB(trimEndFraction * size.width, 0, size.width, size.height), overlayPaint);
     }
 
-    // Right overlay
-    if (trimEndFraction < 1.0) {
-      canvas.drawRect(
-        Rect.fromLTRB(
-            trimEndFraction * size.width, 0, size.width, size.height),
-        overlayPaint..color = AppTheme.bgPrimary.withValues(alpha: 0.62),
-      );
-    }
+    // Draw the active portion in intense signal color
+    canvas.drawPath(activePath, Paint()..color = AppTheme.waveformActive..style = PaintingStyle.fill);
 
     if (isPlaying || playheadFraction > 0) {
-      final playheadX = _getAbsolutePlayhead() * size.width;
-      final playheadPaint = Paint()
-        ..color = AppTheme.textPrimary
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8;
-
-      final glowPaint = Paint()
-        ..color = AppTheme.accentElec.withValues(alpha: 0.16)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 7;
-
-      canvas.drawLine(
-        Offset(playheadX, 0),
-        Offset(playheadX, size.height),
-        glowPaint,
-      );
-
-      canvas.drawLine(
-        Offset(playheadX, 0),
-        Offset(playheadX, size.height),
-        playheadPaint,
-      );
-
-      canvas.drawCircle(
-        Offset(playheadX, 3),
-        4,
-        Paint()..color = AppTheme.accentElec,
-      );
+      final playheadX = trimStartFraction * size.width + playheadFraction * (trimEndFraction - trimStartFraction) * size.width;
+      final headPaint = Paint()..color = AppTheme.textPrimary..strokeWidth = 2.0;
+      canvas.drawLine(Offset(playheadX, 0), Offset(playheadX, size.height), headPaint);
     }
-  }
-
-  double _getAbsolutePlayhead() {
-    // playheadFraction is relative to trim region
-    return trimStartFraction +
-        playheadFraction * (trimEndFraction - trimStartFraction);
   }
 
   @override
   bool shouldRepaint(covariant WaveformPainter oldDelegate) {
-    return oldDelegate.samples != samples ||
-        oldDelegate.trimStartFraction != trimStartFraction ||
-        oldDelegate.trimEndFraction != trimEndFraction ||
-        oldDelegate.playheadFraction != playheadFraction ||
-        oldDelegate.zoomLevel != zoomLevel ||
-        oldDelegate.isPlaying != isPlaying;
+    return true; 
   }
 }

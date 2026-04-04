@@ -24,7 +24,7 @@ class TrimInfoBar extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('TRIM WINDOW', style: AppTheme.monoLabel.copyWith(color: AppTheme.accentElec)),
+          Text('TRIM WINDOW', style: AppTheme.monoLabel.copyWith(color: AppTheme.accentBlue)),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -32,7 +32,7 @@ class TrimInfoBar extends ConsumerWidget {
                 child: _InfoChip(
                   label: 'START',
                   value: FormatUtils.formatDuration(state.trimStart),
-                  color: AppTheme.accentGreen,
+                  color: AppTheme.accentBlue,
                 ),
               ),
               const SizedBox(width: 12),
@@ -48,7 +48,7 @@ class TrimInfoBar extends ConsumerWidget {
                 child: _InfoChip(
                   label: 'DURATION',
                   value: FormatUtils.formatDuration(state.trimmedDuration),
-                  color: AppTheme.accentElec,
+                  color: AppTheme.accentBlue,
                 ),
               ),
             ],

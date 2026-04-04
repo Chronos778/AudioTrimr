@@ -38,8 +38,9 @@ void main() {
 
       expect(find.byType(TrimmerView), findsOneWidget);
       expect(find.text('TRIMR'), findsOneWidget);
-      expect(find.text('MEDIA'), findsOneWidget);
+      expect(find.text('AUDIO TRIMMER'), findsOneWidget);
       expect(find.byType(FileImportZone), findsOneWidget);
+      expect(find.text('SELECT AUDIO FILE'), findsOneWidget);
     });
 
     testWidgets('idle state keeps editor surfaces hidden', (tester) async {
@@ -48,11 +49,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('TIMELINE'), findsNothing);
-      expect(find.text('INSPECTOR'), findsNothing);
-      expect(find.text('TRANSPORT'), findsNothing);
+      expect(find.text('CONTROLS'), findsNothing);
+      expect(find.text('FORMAT'), findsNothing);
+      expect(find.text('DURATION'), findsNothing);
       expect(find.byType(FileImportZone), findsOneWidget);
-      expect(find.textContaining('Import audio'), findsWidgets);
+      expect(find.text('TAP TO IMPORT'), findsOneWidget);
     });
   });
 }
